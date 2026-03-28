@@ -2,15 +2,12 @@ import os
 import re
 
 
-# Folder with pages from Task 1
 PAGES_FOLDER = "../task1/pages"
-
-# Output file
 INDEX_FILE = "inverted_index.txt"
 
 
 # -----------------------------
-# Tokenization
+# Tokenize
 # -----------------------------
 def tokenize(text):
 
@@ -20,7 +17,21 @@ def tokenize(text):
 
 
 # -----------------------------
-# Build inverted index
+# Simple lemmatizer
+# -----------------------------
+def lemmatize(word):
+
+    endings = ["ing", "ed", "es", "s"]
+
+    for end in endings:
+        if word.endswith(end) and len(word) > len(end) + 2:
+            return word[:-len(end)]
+
+    return word
+
+
+# -----------------------------
+# Build inverted index (LEMMA)
 # -----------------------------
 def build_index():
 
@@ -40,33 +51,34 @@ def build_index():
         with open(path, "r", encoding="utf-8", errors="ignore") as f:
             html = f.read()
 
-        # remove html tags
         text = re.sub(r"<[^>]*>", " ", html)
 
         tokens = tokenize(text)
 
         for token in tokens:
 
-            if token not in index:
-                index[token] = set()
+            lemma = lemmatize(token)
 
-            index[token].add(doc_id)
+            if lemma not in index:
+                index[lemma] = set()
+
+            index[lemma].add(doc_id)
 
     return index
 
 
 # -----------------------------
-# Save index to file
+# Save index
 # -----------------------------
 def save_index(index):
 
     with open(INDEX_FILE, "w", encoding="utf-8") as f:
 
-        for term in sorted(index.keys()):
+        for lemma in sorted(index.keys()):
 
-            docs = " ".join(str(d) for d in sorted(index[term]))
+            docs = " ".join(str(d) for d in sorted(index[lemma]))
 
-            f.write(f"{term}: {docs}\n")
+            f.write(f"{lemma}: {docs}\n")
 
 
 # -----------------------------
@@ -103,7 +115,7 @@ def to_postfix(query):
             stack.pop()
 
         else:
-            output.append(t)
+            output.append(token)
 
     while stack:
         output.append(stack.pop())
@@ -112,7 +124,7 @@ def to_postfix(query):
 
 
 # -----------------------------
-# Boolean search
+# Boolean search with lemma query
 # -----------------------------
 def boolean_search(index, query):
 
@@ -146,17 +158,19 @@ def boolean_search(index, query):
 
         else:
 
-            stack.append(index.get(token, set()))
+            lemma = lemmatize(token.lower())
+
+            stack.append(index.get(lemma, set()))
 
     return stack.pop() if stack else set()
 
 
 # -----------------------------
-# Main program
+# Main
 # -----------------------------
 def main():
 
-    print("Building inverted index...")
+    print("Building inverted index (based on lemmas)...")
 
     index = build_index()
 
